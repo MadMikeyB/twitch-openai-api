@@ -40,3 +40,59 @@ Run composer install
 Run the steps in <a href="#secrets">Secrets</a> above to change .env.example to .env
 
 Point your hosting services "public directory" to "public/".
+
+
+## Sending Twitch Chat Input to an Endpoint Using Nightbot
+
+To send input from Twitch chats to your endpoint using Nightbot's URL fetch feature, follow these steps:
+
+### Step 1: Log in to Nightbot
+
+Go to [Nightbot](https://nightbot.tv/) and log in with your Twitch account.
+
+### Step 2: Add a Custom Command
+
+1. Go to the `Commands` section on the Nightbot dashboard.
+2. Click on `+ Add Command`.
+
+### Step 3: Configure the Command
+
+- **Command**: Set the command trigger word. For example, if you want to trigger the endpoint with `!nightbot`, type `!nightbot` here.
+- **Message**: Use the URL fetch feature to send a request to your endpoint. The format will be:
+
+```
+$(urlfetch https://example.com/index.php?user=$(user)&prompt=$(querystring))
+```
+
+Here’s an example configuration:
+
+- **Command**: `!send`
+- **Message**: `$(urlfetch https://example.com/index.php?user=$(user)&prompt=$(querystring))`
+
+### Step 4: Save the Command
+
+Click the `Submit` button to save your new command.
+
+### Example Usage
+
+Now, when someone types `!send <message>` in your Twitch chat, Nightbot will send a request to `https://example.com/index.php` with the Twitch username and the message.
+
+For example, if a user named `TwitchUser123` types:
+
+```
+!send Hello, this is a test message!
+```
+
+Nightbot will send a request to:
+
+```
+https://example.com/index.php?user=TwitchUser123&prompt=Hello,%20this%20is%20a%20test%20message!
+```
+
+### Important Points
+
+- Ensure that your endpoint `https://example.com/index.php` can handle GET requests and processes the `user` and `prompt` parameters correctly.
+- Consider URL encoding special characters in the message to ensure the URL is correctly formatted.
+- You may want to add error handling on your server to manage potential issues with malformed requests.
+
+This setup allows you to dynamically send Twitch chat messages to your endpoint using Nightbot.
