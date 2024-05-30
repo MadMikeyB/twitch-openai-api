@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/../bootstrap.php';
 
 if (!isset($_GET['prompt'])) {
     echo '<form action="index.php" method="GET">';
