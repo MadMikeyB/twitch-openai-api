@@ -2,6 +2,13 @@
 
 Provides an endpoint for Nightbot or other twitch bots to consume via fetch.
 
+# Pre-requisites
+
+PHP 8.2
+Composer
+Hosting service
+Domain name
+
 # Secrets
 
 We are using the .env file outside of the web root as a security paradigm, so your secrets are contained within the .env file and are not web accessible.
@@ -20,8 +27,6 @@ Should be the RAW URL to your github txt file containing your context, this URL 
 
 You will need to host this on a hosting service so that it's accessible from a domain name. You will also need to point a domain name at your hosting service.
 
-
-
 # Setup
 
 git clone the repository to your hosting service:
@@ -31,5 +36,7 @@ git clone the repository to your hosting service:
 Run composer install
 
 `composer install`
+
+Run the steps in <a href="#secrets">Secrets</a> above to change .env.example to .env
 
 Point your hosting services "public directory" to "public/".
