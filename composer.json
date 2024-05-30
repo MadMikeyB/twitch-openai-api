@@ -1,0 +1,23 @@
+{
+    "require": {
+        "openai-php/client": "^0.9.2",
+        "symfony/http-client": "^7.0",
+        "nyholm/psr7": "^1.8",
+        "vlucas/phpdotenv": "^5.6",
+        "guzzlehttp/guzzle": "^7.8",
+        "spatie/ignition": "^1.14",
+        "monolog/monolog": "^3.6",
+        "symfony/var-dumper": "^7.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "TwitchGpt\\": "app"
+        }
+    }
+    
+}
