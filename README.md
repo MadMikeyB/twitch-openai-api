@@ -66,7 +66,7 @@ $(urlfetch https://example.com/index.php?user=$(user)&prompt=$(querystring))
 
 Here’s an example configuration:
 
-- **Command**: `!send`
+- **Command**: `!nightbot`
 - **Message**: `$(urlfetch https://example.com/index.php?user=$(user)&prompt=$(querystring))`
 
 ### Step 4: Save the Command
@@ -75,12 +75,12 @@ Click the `Submit` button to save your new command.
 
 ### Example Usage
 
-Now, when someone types `!send <message>` in your Twitch chat, Nightbot will send a request to `https://example.com/index.php` with the Twitch username and the message.
+Now, when someone types `!nightbot <message>` in your Twitch chat, Nightbot will send a request to `https://example.com/index.php` with the Twitch username and the message.
 
 For example, if a user named `TwitchUser123` types:
 
 ```
-!send Hello, this is a test message!
+!nightbot Hello, this is a test message!
 ```
 
 Nightbot will send a request to:
