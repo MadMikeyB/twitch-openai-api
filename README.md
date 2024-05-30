@@ -89,10 +89,4 @@ Nightbot will send a request to:
 https://example.com/index.php?user=TwitchUser123&prompt=Hello,%20this%20is%20a%20test%20message!
 ```
 
-### Important Points
-
-- Ensure that your endpoint `https://example.com/index.php` can handle GET requests and processes the `user` and `prompt` parameters correctly.
-- Consider URL encoding special characters in the message to ensure the URL is correctly formatted.
-- You may want to add error handling on your server to manage potential issues with malformed requests.
-
 This setup allows you to dynamically send Twitch chat messages to your endpoint using Nightbot.
