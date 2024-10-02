@@ -103,6 +103,11 @@ class Gpt {
         
         $reply = $result->choices[0]->message->content;
 
+        // Twitch character limit is 399
+        if (strlen($reply) > 399) {
+            $reply = substr($reply, 0, 399);
+        }
+    
         return $reply;
     }
 }
