@@ -25,11 +25,11 @@ class Gpt {
     public function cleanPrompt($prompt)
     {
         $prompt = trim($prompt);
-        $prompt = htmlspecialchars($prompt, ENT_QUOTES, 'UTF-8');
+        // Remove non-printable ASCII characters (control characters)
         $prompt = preg_replace('/[\x00-\x1F\x7F]/', '', $prompt);
         $prompt = strip_tags($prompt);
-        $prompt = addslashes($prompt);
-        $prompt = preg_replace('/[^a-zA-Z0-9 ]/', '', $prompt);
+        // Allow letters, numbers, spaces, apostrophes, periods, commas, question marks, exclamation points, and hyphens
+        $prompt = preg_replace("/[^a-zA-Z0-9'.,?!\- ]/", '', $prompt);
         return $prompt;
     }
 
