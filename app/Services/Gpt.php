@@ -35,6 +35,19 @@ class Gpt {
         return $prompt;
     }
 
+    public function shouldUseWebSearch($prompt)
+    {
+        return preg_match('/!search|search/i', $prompt) === 1;
+    }
+
+    public function stripWebSearchTrigger($prompt)
+    {
+        $prompt = preg_replace('/!search/i', ' ', $prompt);
+        $prompt = preg_replace('/search/i', ' ', $prompt);
+
+        return trim(preg_replace('/\s+/', ' ', $prompt));
+    }
+
 
     /**
      * Merge Prompt with Context
@@ -148,7 +161,7 @@ class Gpt {
      * 
      * @return  string $result The reply from OpenAI
      */
-    public function getResponse($user, $prompt) 
+    public function getResponse($user, $prompt, $useWebSearch = false) 
     {
         $startedAt = microtime(true);
         $client = $this->getClient();
@@ -157,7 +170,7 @@ class Gpt {
         $parameters = [
             'model' => 'gpt-5-mini',
             'reasoning' => [
-                'effort' => 'minimal',
+                'effort' => $useWebSearch ? 'low' : 'minimal',
             ],
             'input' => [
                 [
@@ -171,11 +184,18 @@ class Gpt {
             $parameters['instructions'] = $context;
         }
 
+        if ($useWebSearch) {
+            $parameters['tools'] = [
+                ['type' => 'web_search_preview'],
+            ];
+        }
+
         $openAiStartedAt = microtime(true);
         $result = $client->responses()->create($parameters);
         $this->timings['openai'] = [
             'duration_ms' => $this->getDurationMs($openAiStartedAt),
             'model' => 'gpt-5-mini',
+            'web_search' => $useWebSearch,
         ];
         
         $reply = trim((string) $result->outputText);
