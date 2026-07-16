@@ -1,5 +1,0 @@
-[2026-07-16T14:17:44.576795+00:00] twitch-gpt.INFO: Init logging [] []
-[2026-07-16T14:17:44.577783+00:00] twitch-gpt.INFO: RAW PROMPT:where is leopard [] []
-[2026-07-16T14:17:44.577917+00:00] twitch-gpt.INFO: Prompt input:where is leopard [] []
-[2026-07-16T14:17:46.273804+00:00] twitch-gpt.INFO: Timings: {"context":{"source":"cache","duration_ms":0},"openai":{"duration_ms":1679,"model":"gpt-5-mini"},"total":{"duration_ms":1692},"request":{"duration_ms":1696}} [] []
-[2026-07-16T14:17:46.274073+00:00] twitch-gpt.INFO: Response:Probably running late (classic Lep), sipping coffee, and prepping solo GM nightfalls while Kari perfects food photos. He’ll show up—eventually. Tell MadMikeyB to grab a chuck buck and a snack, we start when Lep strolls in. lepWINK [] []
