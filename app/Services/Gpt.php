@@ -4,6 +4,8 @@ namespace TwitchGpt\Services;
 use OpenAI;
 
 class Gpt {
+    private const CONTEXT_CACHE_TTL = 3600;
+    private array $timings = [];
     
     /**
      * Get an instance of the OpenAI Client
@@ -44,8 +46,6 @@ class Gpt {
     {
         // Don't send shit to the API
         $cleanPrompt = $this->cleanPrompt($prompt);
-        // init client
-        $client = $this->getClient();
         // fetch the contextual info
         $context = $this->getContext();
         // merge user request (cleaned) with context.
@@ -61,17 +61,83 @@ class Gpt {
      */
     public function getContext()
     {
-        // init http client and fetch the contextual info
-        $httpClient = new \GuzzleHttp\Client();
+        $startedAt = microtime(true);
         $contextUrl = env('OPENAI_PROMPT_CONTEXT_URL');
+        if (!$contextUrl) {
+            $this->timings['context'] = [
+                'source' => 'disabled',
+                'duration_ms' => 0,
+            ];
 
-        if (env('OPENAI_PROMPT_CONTEXT_URL')) {
-            $response = $httpClient->request('GET', $contextUrl);
-            $context = $response->getBody()->getContents();
-            return $context; 
+            return null;
         }
 
+        $cacheFile = $this->getContextCacheFile($contextUrl);
+
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < self::CONTEXT_CACHE_TTL) {
+            $cachedContext = file_get_contents($cacheFile);
+
+            if ($cachedContext !== false) {
+                $this->timings['context'] = [
+                    'source' => 'cache',
+                    'duration_ms' => $this->getDurationMs($startedAt),
+                ];
+
+                return $cachedContext;
+            }
+        }
+
+        $httpClient = new \GuzzleHttp\Client();
+
+        try {
+            $response = $httpClient->request('GET', $contextUrl);
+            $context = $response->getBody()->getContents();
+            $cacheDirectory = dirname($cacheFile);
+
+            if (!is_dir($cacheDirectory)) {
+                mkdir($cacheDirectory, 0775, true);
+            }
+
+            file_put_contents($cacheFile, $context, LOCK_EX);
+
+            $this->timings['context'] = [
+                'source' => 'remote',
+                'duration_ms' => $this->getDurationMs($startedAt),
+            ];
+
+            return $context;
+        } catch (\Throwable $exception) {
+            if (is_file($cacheFile)) {
+                $cachedContext = file_get_contents($cacheFile);
+
+                if ($cachedContext !== false) {
+                    $this->timings['context'] = [
+                        'source' => 'stale-cache',
+                        'duration_ms' => $this->getDurationMs($startedAt),
+                    ];
+
+                    return $cachedContext;
+                }
+            }
+        }
+
+        $this->timings['context'] = [
+            'source' => 'failed',
+            'duration_ms' => $this->getDurationMs($startedAt),
+        ];
+
         return null;
+    }
+
+    /**
+     * Get the cache file path for the remote context.
+     *
+     * @param string $contextUrl
+     * @return string
+     */
+    private function getContextCacheFile($contextUrl)
+    {
+        return dirname(__DIR__, 2) . '/cache/context-' . md5($contextUrl) . '.txt';
     }
 
     /**
@@ -84,30 +150,55 @@ class Gpt {
      */
     public function getResponse($user, $prompt) 
     {
+        $startedAt = microtime(true);
         $client = $this->getClient();
         $context = $this->getContext();
-    
-        $result = $client->chat()->create([
+
+        $parameters = [
             'model' => 'gpt-5-mini',
-            'messages' => [
+            'reasoning' => [
+                'effort' => 'minimal',
+            ],
+            'input' => [
                 [
-                    'role' => 'system',
-                    'content' => $context,
-                ],
-                [
-                    'role' => 'user', 
-                    'content' => "{$user}: {$prompt}"
+                    'role' => 'user',
+                    'content' => "{$user}: {$prompt}",
                 ],
             ],
-        ]);
+        ];
+
+        if ($context !== null) {
+            $parameters['instructions'] = $context;
+        }
+
+        $openAiStartedAt = microtime(true);
+        $result = $client->responses()->create($parameters);
+        $this->timings['openai'] = [
+            'duration_ms' => $this->getDurationMs($openAiStartedAt),
+            'model' => 'gpt-5-mini',
+        ];
         
-        $reply = $result->choices[0]->message->content;
+        $reply = trim((string) $result->outputText);
 
         // Twitch character limit is 399
         if (strlen($reply) > 399) {
             $reply = substr($reply, 0, 399);
         }
+
+        $this->timings['total'] = [
+            'duration_ms' => $this->getDurationMs($startedAt),
+        ];
     
         return $reply;
+    }
+
+    public function getTimings()
+    {
+        return $this->timings;
+    }
+
+    private function getDurationMs($startedAt)
+    {
+        return (int) round((microtime(true) - $startedAt) * 1000);
     }
 }

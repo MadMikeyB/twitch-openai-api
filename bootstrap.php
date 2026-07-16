@@ -5,6 +5,14 @@
 
  require __DIR__ . '/vendor/autoload.php';
 
+foreach (['cache', 'logs'] as $directory) {
+    $path = __DIR__ . '/' . $directory;
+
+    if (!is_dir($path)) {
+        mkdir($path, 0775, true);
+    }
+}
+
  /**
   * Load environment file
   */
@@ -23,5 +31,5 @@ $dotenv->safeLoad();
  */
 
 $log = new \Monolog\Logger('twitch-gpt');
-$log->pushHandler(new \Monolog\Handler\StreamHandler('logs/twitch-gpt-' . date('y-m-d') . '.log', \Monolog\Level::Warning));
+$log->pushHandler(new \Monolog\Handler\StreamHandler(__DIR__ . '/logs/twitch-gpt-' . date('y-m-d') . '.log', \Monolog\Level::Info));
 $log->info('Init logging');
