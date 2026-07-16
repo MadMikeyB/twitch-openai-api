@@ -88,7 +88,7 @@ class Gpt {
         $context = $this->getContext();
     
         $result = $client->chat()->create([
-            'model' => 'gpt-3.5-turbo',
+            'model' => 'gpt-5-mini',
             'messages' => [
                 [
                     'role' => 'system',
