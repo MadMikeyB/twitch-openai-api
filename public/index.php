@@ -54,6 +54,10 @@ if (!isset($_GET['prompt'])) {
             try {
                 $response = $gpt->getResponse($user, $prompt, true);
                 $timings = $gpt->getTimings();
+                $log->info('OpenAI meta: ' . json_encode([
+                    'cache_hit' => $timings['openai']['cache_hit'] ?? false,
+                    'memory_entries_sent' => $timings['memory']['entries_sent'] ?? 0,
+                ]));
                 $log->info('Timings: ' . json_encode($timings));
 
                 $httpClient = new \GuzzleHttp\Client();
@@ -76,6 +80,10 @@ if (!isset($_GET['prompt'])) {
         $totalRequestDurationMs = (int) round((microtime(true) - $requestStartedAt) * 1000);
         $timings['request'] = ['duration_ms' => $totalRequestDurationMs];
         header('X-Twitch-Gpt-Response-Time-Ms: ' . $totalRequestDurationMs);
+        $log->info('OpenAI meta: ' . json_encode([
+            'cache_hit' => $timings['openai']['cache_hit'] ?? false,
+            'memory_entries_sent' => $timings['memory']['entries_sent'] ?? 0,
+        ]));
         $log->info('Timings: ' . json_encode($timings));
         $log->info('Response:'. $response);
         echo $response;

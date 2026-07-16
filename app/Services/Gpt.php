@@ -5,6 +5,8 @@ use OpenAI;
 
 class Gpt {
     private const CONTEXT_CACHE_TTL = 3600;
+    private const PROMPT_CACHE_LIMIT = 10;
+    private const MEMORY_LIMIT = 5;
     private array $timings = [];
     
     /**
@@ -164,20 +166,42 @@ class Gpt {
     public function getResponse($user, $prompt, $useWebSearch = false) 
     {
         $startedAt = microtime(true);
+        $history = $this->loadConversationHistory();
+        $cachedResponse = $this->findCachedResponse($history, $prompt, $useWebSearch);
+
+        if ($cachedResponse !== null) {
+            $this->recordConversation($history, $user, $prompt, $cachedResponse, $useWebSearch);
+            $this->timings['openai'] = [
+                'duration_ms' => 0,
+                'model' => 'cache',
+                'web_search' => $useWebSearch,
+                'cache_hit' => true,
+            ];
+            $this->timings['memory'] = [
+                'entries_sent' => 0,
+            ];
+            $this->timings['total'] = [
+                'duration_ms' => $this->getDurationMs($startedAt),
+            ];
+
+            return $cachedResponse;
+        }
+
         $client = $this->getClient();
         $context = $this->getContext();
+        $memory = $this->buildConversationMemory($history);
 
         $parameters = [
             'model' => 'gpt-5-mini',
             'reasoning' => [
                 'effort' => $useWebSearch ? 'low' : 'minimal',
             ],
-            'input' => [
+            'input' => array_merge($memory, [
                 [
                     'role' => 'user',
                     'content' => "{$user}: {$prompt}",
                 ],
-            ],
+            ]),
         ];
 
         if ($context !== null) {
@@ -196,14 +220,21 @@ class Gpt {
             'duration_ms' => $this->getDurationMs($openAiStartedAt),
             'model' => 'gpt-5-mini',
             'web_search' => $useWebSearch,
+            'cache_hit' => false,
+        ];
+        $this->timings['memory'] = [
+            'entries_sent' => count($memory),
         ];
         
         $reply = trim((string) $result->outputText);
+        $reply = $this->convertMarkdownLinksToRawLinks($reply);
 
         // Twitch character limit is 399
         if (strlen($reply) > 399) {
             $reply = substr($reply, 0, 399);
         }
+
+        $this->recordConversation($history, $user, $prompt, $reply, $useWebSearch);
 
         $this->timings['total'] = [
             'duration_ms' => $this->getDurationMs($startedAt),
@@ -220,5 +251,93 @@ class Gpt {
     private function getDurationMs($startedAt)
     {
         return (int) round((microtime(true) - $startedAt) * 1000);
+    }
+
+    private function convertMarkdownLinksToRawLinks($text)
+    {
+        return preg_replace('/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/', '$2', $text);
+    }
+
+    private function loadConversationHistory()
+    {
+        $historyFile = $this->getConversationHistoryFile();
+
+        if (!is_file($historyFile)) {
+            return [];
+        }
+
+        $contents = file_get_contents($historyFile);
+
+        if ($contents === false || $contents === '') {
+            return [];
+        }
+
+        $history = json_decode($contents, true);
+
+        return is_array($history) ? $history : [];
+    }
+
+    private function saveConversationHistory($history)
+    {
+        $historyFile = $this->getConversationHistoryFile();
+        file_put_contents($historyFile, json_encode(array_values($history), JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    private function getConversationHistoryFile()
+    {
+        return dirname(__DIR__, 2) . '/cache/conversation-history.json';
+    }
+
+    private function findCachedResponse($history, $prompt, $useWebSearch)
+    {
+        $recentHistory = array_slice(array_reverse($history), 0, self::PROMPT_CACHE_LIMIT);
+
+        foreach ($recentHistory as $entry) {
+            $cachedPrompt = $entry['cache_prompt'] ?? ($entry['prompt'] ?? null);
+
+            if ($cachedPrompt === $prompt && ($entry['use_web_search'] ?? false) === $useWebSearch) {
+                return $entry['response'] ?? null;
+            }
+        }
+
+        return null;
+    }
+
+    private function buildConversationMemory($history)
+    {
+        $recentHistory = array_slice($history, -self::MEMORY_LIMIT);
+        $memory = [];
+
+        foreach ($recentHistory as $entry) {
+            if (!isset($entry['user'], $entry['prompt'], $entry['response'])) {
+                continue;
+            }
+
+            $memory[] = [
+                'role' => 'user',
+                'content' => $entry['user'] . ': ' . $entry['prompt'],
+            ];
+            $memory[] = [
+                'role' => 'assistant',
+                'content' => $entry['response'],
+            ];
+        }
+
+        return $memory;
+    }
+
+    private function recordConversation($history, $user, $prompt, $response, $useWebSearch)
+    {
+        $history[] = [
+            'user' => $user,
+            'prompt' => $useWebSearch ? '!search ' . $prompt : $prompt,
+            'cache_prompt' => $prompt,
+            'response' => $response,
+            'use_web_search' => $useWebSearch,
+            'created_at' => time(),
+        ];
+
+        $maxEntries = max(self::PROMPT_CACHE_LIMIT, self::MEMORY_LIMIT);
+        $this->saveConversationHistory(array_slice($history, -$maxEntries));
     }
 }
