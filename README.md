@@ -4,7 +4,7 @@ Provides an endpoint for Nightbot or other twitch bots to consume via fetch.
 
 # Pre-requisites
 
-- PHP 8.2
+- PHP 8.3
 - Composer
 - Hosting service
 - Domain name
