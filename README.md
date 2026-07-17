@@ -17,7 +17,7 @@ To get started, copy `.env.example` to `.env`, and change the values.
 
 `OPENAI_API_KEY` 
 
-Should be your OpenAI API Key provided by OpenAI here:
+Should be your OpenAI API Key provided by OpenAI here: https://platform.openai.com/api-keys
 
 `OPENAI_PROMPT_CONTEXT_URL`
 
